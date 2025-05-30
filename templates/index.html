@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Meta-Critique Tester</title>
+</head>
+<body>
+  <h1>Student Feedback Meta-Critique</h1>
+  <form id="feedbackForm">
+    <textarea id="feedbackInput" rows="12" cols="80" placeholder="Paste your student feedback here..."></textarea><br>
+    <button type="submit">Submit for Meta-Critique</button>
+  </form>
+  <h2>Response:</h2>
+  <pre id="responseOutput">Waiting for submission...</pre>
+
+  <script>
+    document.getElementById("feedbackForm").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const feedback = document.getElementById("feedbackInput").value;
+
+      const res = await fetch("/meta_critique", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ feedback })
+      });
+
+      const result = await res.json();
+      document.getElementById("responseOutput").textContent = result.meta_feedback;
+    });
+  </script>
+</body>
+</html>
