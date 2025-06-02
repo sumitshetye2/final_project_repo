@@ -251,18 +251,27 @@ input:checked + .slider:before {
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-sm);
     padding: 15px;
-    min-height: 500px;
-    max-height: 100%;
+    
+    /* Set a fixed height for the container */
+    height: 500px; /* Or use max-height: 500px; if you want it to be shorter when content is less */
+    
+    /* Enable vertical scrolling when content overflows the height */
     overflow-y: auto;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    color: var(--text-primary); /* Changed to primary text color for generated content */
-    font-family: var(--font-family); /* Ensured consistent font */
+    
+    /* Important: Remove flex-grow to allow the height to take effect */
+    /* flex-grow: 1; <-- REMOVE THIS LINE ENTIRELY */
+
+    /* Remove pre-wrap if you've changed the HTML tag from <pre> to <div> */
+    /* This allows the Markdown-generated HTML (h1, p, ul, etc.) to render normally */
+    white-space: normal; /* Changed from pre-wrap or word-wrap */
+    word-wrap: break-word; /* Still useful for long words */
+    
+    color: var(--text-primary); /* Ensures text color adapts to theme */
+    font-family: var(--font-family); /* Ensures consistent font */
     font-size: 0.95em;
-    flex-grow: 1;
+    
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
-    /* Position relative for absolute positioning of loader dots if needed later */
-    position: relative;
+    position: relative; /* Keep this for potential future positioning of elements inside */
 }
 
 /* Placeholder style for response output */

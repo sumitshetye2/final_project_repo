@@ -3,6 +3,7 @@
 <head>
     <title>UX Feedback Critique Assistant</title>
     <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -10,9 +11,9 @@
             <h1>UX Feedback Critique Assistant</h1>
             <div class="theme-switch-wrapper">
                 <label class="theme-switch" for="checkbox">
-						  <input type="checkbox" id="checkbox" />
-						  <div class="slider round"></div>
-					 </label>
+                            <input type="checkbox" id="checkbox" />
+                            <div class="slider round"></div>
+                    </label>
             </div>
         </header>
 
@@ -41,74 +42,80 @@
 
             <div class="right-panel">
                 <h2>Suggestions</h2>
-                <pre id="responseOutput" class="response-output">Anticipating your input...</pre>
+                <div id="responseOutput" class="response-output">Anticipating your input...</div>
             </div>
         </div>
     </div>
 
     <script>
-		// --- Theme Switch Logic ---
-		const checkbox = document.getElementById('checkbox');
-		const body = document.body;
+        // --- Theme Switch Logic ---
+        const checkbox = document.getElementById('checkbox');
+        const body = document.body;
 
-		// Function to set theme
-		function setTheme(isLight) {
-			if (isLight) {
-				body.classList.add('light-mode');
-				body.classList.remove('dark-mode');
-				localStorage.setItem('theme', 'light');
-			} else {
-				body.classList.add('dark-mode');
-				body.classList.remove('light-mode');
-				localStorage.setItem('theme', 'dark');
-			}
-		}
-
-		// Apply saved theme on load
-		const savedTheme = localStorage.getItem('theme');
-		if (savedTheme === 'light') {
-			checkbox.checked = true;
-			setTheme(true);
-		} else {
-			checkbox.checked = false;
-			setTheme(false);
-		}
-		
-		// Event Listener for theme toggle
-		checkbox.addEventListener('change', function() {
-			setTheme(this.checked);
-		})
-
-		// --- Feedback Form Logic ---
-		document.getElementById("feedbackForm").addEventListener("submit", async function (e) {
-        e.preventDefault();
-        const feedback = document.getElementById("feedbackInput").value;
-        const responseOutput = document.getElementById("responseOutput");
-
-        // 1. Show loading indicator immediately
-        responseOutput.classList.add('loading');
-        // Use innerHTML to allow for the span for animation dots
-        responseOutput.innerHTML = 'Generating suggestions<span class="dots"><span>.</span><span>.</span><span>.</span></span>';
-
-        try {
-            // Ensure this URL matches your FastAPI server's address (e.g., http://127.0.0.1:8000)
-            const res = await fetch("http://127.0.0.1:8000/meta_critique", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ feedback: feedback })
-            });
-
-            const result = await res.json();
-            // 2. Display actual response
-            responseOutput.textContent = result.meta_feedback;
-        } catch (error) {
-            console.error("Error fetching meta-critique:", error);
-            responseOutput.textContent = "Error: Could not generate suggestions. Please try again.";
-        } finally {
-            // 3. Remove loading indicator regardless of success or failure
-            responseOutput.classList.remove('loading');
+        // Function to set theme
+        function setTheme(isLight) {
+            if (isLight) {
+                body.classList.add('light-mode');
+                body.classList.remove('dark-mode');
+                localStorage.setItem('theme', 'light');
+            } else {
+                body.classList.add('dark-mode');
+                body.classList.remove('light-mode');
+                localStorage.setItem('theme', 'dark');
+            }
         }
-    });
+
+        // Apply saved theme on load
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'light') {
+            checkbox.checked = true;
+            setTheme(true);
+        } else {
+            checkbox.checked = false;
+            setTheme(false);
+        }
+        
+        // Event Listener for theme toggle
+        checkbox.addEventListener('change', function() {
+            setTheme(this.checked);
+        })
+
+        // --- Feedback Form Logic ---
+        document.getElementById("feedbackForm").addEventListener("submit", async function (e) {
+            e.preventDefault();
+            // Get both design phase and feedback input
+            const designPhase = document.getElementById("designPhase").value;
+            const feedback = document.getElementById("feedbackInput").value;
+            const responseOutput = document.getElementById("responseOutput");
+
+            // 1. Show loading indicator immediately
+            responseOutput.classList.add('loading');
+            // Use innerHTML to allow for the span for animation dots
+            responseOutput.innerHTML = 'Generating suggestions<span class="dots"><span>.</span><span>.</span><span>.</span></span>';
+
+            try {
+                // Ensure this URL matches your FastAPI server's address (e.g., http://127.0.0.1:8000)
+                const res = await fetch("http://127.0.0.1:8000/meta_critique", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    // Send both designPhase and feedback in the request body
+                    body: JSON.stringify({ design_phase: designPhase, feedback: feedback })
+                });
+
+                const result = await res.json();
+                
+                // 2. Convert Markdown to HTML and display
+                // Use marked.parse() to convert the Markdown string from the backend into HTML
+                responseOutput.innerHTML = marked.parse(result.meta_feedback);
+
+            } catch (error) {
+                console.error("Error fetching meta-critique:", error);
+                responseOutput.textContent = "Error: Could not generate suggestions. Please try again.";
+            } finally {
+                // 3. Remove loading indicator regardless of success or failure
+                responseOutput.classList.remove('loading');
+            }
+        });
     </script>
 </body>
 </html>

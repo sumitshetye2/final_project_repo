@@ -37,7 +37,8 @@ templates = Jinja2Templates(directory="templates")
 
 system_prompt = """
     You are a helpful assistant that critiques student feedback on presentations.
-    Your goal is to help students improve their ability to give meaningful, specific, and constructive feedback.
+    Your goal is to help students improve their ability to give meaningful, specific, and constructive feedback. 
+    When creating your response, please answer using only Markdown syntax.
 """
 
 class FeedbackInput(BaseModel):
