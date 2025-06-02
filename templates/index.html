@@ -10,10 +10,11 @@
         <header class="app-header">
             <h1>UX Feedback Critique Assistant</h1>
             <div class="theme-switch-wrapper">
+                <span class="theme-descriptor" id="themeDescriptor">Dark Mode</span>
                 <label class="theme-switch" for="checkbox">
-                            <input type="checkbox" id="checkbox" />
-                            <div class="slider round"></div>
-                    </label>
+                    <input type="checkbox" id="checkbox" />
+                    <div class="slider round"></div>
+                </label>
             </div>
         </header>
 
@@ -51,6 +52,7 @@
         // --- Theme Switch Logic ---
         const checkbox = document.getElementById('checkbox');
         const body = document.body;
+        const themeDescriptor = document.getElementById('themeDescriptor'); // Get the new descriptor span
 
         // Function to set theme
         function setTheme(isLight) {
@@ -58,10 +60,12 @@
                 body.classList.add('light-mode');
                 body.classList.remove('dark-mode');
                 localStorage.setItem('theme', 'light');
+                themeDescriptor.textContent = 'Light Mode'; // Update text for light mode
             } else {
                 body.classList.add('dark-mode');
                 body.classList.remove('light-mode');
                 localStorage.setItem('theme', 'dark');
+                themeDescriptor.textContent = 'Dark Mode'; // Update text for dark mode
             }
         }
 
@@ -69,10 +73,10 @@
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme === 'light') {
             checkbox.checked = true;
-            setTheme(true);
+            setTheme(true); // Call setTheme to correctly set descriptor on load
         } else {
             checkbox.checked = false;
-            setTheme(false);
+            setTheme(false); // Call setTheme to correctly set descriptor on load
         }
         
         // Event Listener for theme toggle
