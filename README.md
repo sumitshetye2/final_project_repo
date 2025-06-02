@@ -8,7 +8,21 @@ Up and running!
 
 ## 🚀 Getting Started
 
-1. Clone the repo
-2. Set up your environment:
+### Clone the repo
+Clone using your preferred method
+
+### Set up your environment:
    ```bash
    uv pip install fastapi openai uvicorn python-dotenv
+   ```
+
+### Usage
+Start the server by using:
+   ```bash
+   python -m uvicorn server:app --reload
+   ```
+Then click the generated server url in the terminal. It should look something like:
+```bash
+http://127.0.0.1:8000 # Press CTRL/CMD + Click to follow link
+```
+
