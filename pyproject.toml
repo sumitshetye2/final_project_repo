@@ -3,9 +3,11 @@ name = "final_project"
 version = "0.1.0"
 description = "Backend for evaluating meta-feedback with GPT"
 requires-python = ">=3.8"
+
 dependencies = [
-    "fastapi",
-    "openai",
-    "uvicorn",
-    "python-dotenv"
+  "fastapi",
+  "openai",
+  "uvicorn",
+  "python-dotenv",
+  "google-generativeai"
 ]

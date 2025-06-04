@@ -36,7 +36,16 @@
                         <label for="feedbackInput">What are some feedback you have for your peers? Be sure to include things that they did well, things that could be improved, and other thoughts/questions you have!</label>
                         <textarea id="feedbackInput" rows="12" placeholder="Paste student feedback here..." class="input-field textarea-large"></textarea>
                     </div>
-                    
+
+                    <!-- Custom Instructions Toggle and Panel -->
+                    <div class="form-group">
+                        <button type="button" id="toggleCustomInstructions" class="toggle-button">Add Custom Instructions</button>
+                        <div id="customInstructionsPanel" style="display:none; margin-top:10px;">
+                            <label for="customInstructions">Custom Instructions (optional):</label>
+                            <textarea id="customInstructions" rows="3" placeholder="Offer the feedback in spanish, plz" class="input-field"></textarea>
+                        </div>
+                    </div>
+
                     <button type="submit" class="submit-button">Get Suggestions</button>
                 </form>
             </div>
@@ -85,11 +94,25 @@
         })
 
         // --- Feedback Form Logic ---
+        // Add toggle logic for custom instructions panel
+        const toggleBtn = document.getElementById('toggleCustomInstructions');
+        const customPanel = document.getElementById('customInstructionsPanel');
+        toggleBtn.addEventListener('click', function() {
+            if (customPanel.style.display === 'none') {
+                customPanel.style.display = 'block';
+                toggleBtn.textContent = 'Hide Custom Instructions';
+            } else {
+                customPanel.style.display = 'none';
+                toggleBtn.textContent = 'Add Custom Instructions';
+            }
+        });
+
         document.getElementById("feedbackForm").addEventListener("submit", async function (e) {
             e.preventDefault();
             // Get both design phase and feedback input
             const designPhase = document.getElementById("designPhase").value;
             const feedback = document.getElementById("feedbackInput").value;
+            const customInstructions = document.getElementById("customInstructions").value; // NEW
             const responseOutput = document.getElementById("responseOutput");
 
             // 1. Show loading indicator immediately
@@ -102,8 +125,8 @@
                 const res = await fetch("http://127.0.0.1:8000/meta_critique", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    // Send both designPhase and feedback in the request body
-                    body: JSON.stringify({ design_phase: designPhase, feedback: feedback })
+                    // Send both designPhase, feedback, and customInstructions in the request body
+                    body: JSON.stringify({ design_phase: designPhase, feedback: feedback, custom_instructions: customInstructions })
                 });
 
                 const result = await res.json();
