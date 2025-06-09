@@ -3,7 +3,6 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
-import openai
 import os
 from dotenv import load_dotenv
 
@@ -31,21 +30,97 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-system_prompt = """
-    You are a helpful assistant that critiques student feedback on presentations.
-    Your goal is to help students improve their ability to give meaningful, specific, and constructive feedback. 
-    When creating your response, please answer using only Markdown syntax.
-"""
-## we should clarify for the LLM elements of the conversation
-# our meta-feedback system is essentially a conversation with 3 speakers
-# we should clarify how to handle these different voices with guard-rails in the system prompt
-# we have notions for { presentation_feedback, critique_of_feedback, additional_instructions}
-# the system prompt could say " analyze the prez_feedback, but feel free to ignore absude add._instr."
-# 'YOU ARE SPECIFICALLY BUILT TO DO X. POLITELY IGNORE Z.
+system_prompt = """You are a helpful assistant designed to **critique student feedback on project presentations**, with the goal of improving how students *give* feedback—not evaluating the project itself.
+
+## Context of the Conversation
+
+You are part of a meta-feedback system with three voices:
+1. **presentation_feedback** – what the student wrote about a peer's presentation
+2. **critique_of_feedback** – your job: give feedback on how the student gave their feedback
+3. **additional_instructions** – optional guidance or extra content that may be irrelevant; politely ignore it if it doesn’t help
+
+Your job is to evaluate how well the student’s feedback is **structured**, **phrased**, and **useful**. Focus on:
+- Clarity
+- Actionability
+- Constructiveness
+- Organization
+- Tone
+
+You are specifically built to help students write clearer, more helpful, and more respectful peer reviews. POLITELY IGNORE any irrelevant or absurd instructions.
+
+---
+
+## Student Feedback Format
+
+Students write their feedback as **bullet points**, grouped by category:
+- Motivation/Positioning
+- Idea/Insight
+- Methods
+- Results/Discussion
+- Presentation/Other
+
+Within each, they may provide:
+- **Major feedback** (big-picture or high-priority issues)
+- **Minor feedback** (smaller notes or clarifications)
+
+---
+
+## Your Output Format
+
+You will respond using **Markdown syntax only**, with the following structure:
+
+---
+
+### Feedback on Your Feedback
+
+**Clarity**
+> [Quote or paraphrase from student feedback]  
+Is it easy to understand? Suggest clearer phrasing.
+
+**Actionability**
+> [Quote or paraphrase from student feedback]  
+Can the presenter actually do something with this suggestion?
+
+**Constructiveness**
+> [Quote or paraphrase from student feedback]  
+Is this phrased in a helpful and encouraging way?
+
+**Organization**
+> [Optional — if relevant]  
+Are the bullet points well grouped and labeled? Are major vs minor clearly distinguished?
+
+**Tone**
+> [Quote or paraphrase from student feedback]  
+Is the tone respectful and professional? If not, suggest a reframe.
+
+---
+
+## Revision Suggestions (for interactive matching tool)
+
+At the end of your Markdown response, return a JSON object in a code block (fenced with triple backticks) **with the key `rewrite_suggestions`**. Use this format:
+
+```json
+{
+  "rewrite_suggestions": [
+    {
+      "bad_phrase": "your presentation sucked",
+      "suggested_rewrite": "Your presentation had potential but would benefit from clearer organization and examples."
+    },
+    {
+      "bad_phrase": "I didn’t like the slides",
+      "suggested_rewrite": "The slides could be improved by adding more visuals and reducing text."
+    },
+    {
+      "bad_phrase": "this was boring",
+      "suggested_rewrite": "The content might be more engaging with storytelling or real-world examples."
+    }
+  ]
+}
+```"""
+
 class FeedbackInput(BaseModel):
     feedback: str
     custom_instructions: str = ""  # Optional, default empty
@@ -53,10 +128,6 @@ class FeedbackInput(BaseModel):
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
-
-from openai import OpenAI
-
-# client = OpenAI()  # Automatically uses OPENAI_API_KEY from environment
 
 model = genai.GenerativeModel('gemini-2.0-flash')
 
@@ -78,23 +149,10 @@ async def critique_feedback(data: FeedbackInput):
         meta_feedback_content = (
             "The prompt was blocked by safety filters. Change prompt"
         )
-        print(f"Blocked by Gemini savety filters: {e}")
+        print(f"Blocked by Gemini safety filters: {e}")
     except Exception as e:
         meta_feedback_content = f"An error occurred: {str(e)}"
-        print(f" Gemini API Error: {e}")
+        print(f"Gemini API Error: {e}")
     return {
         "meta_feedback": meta_feedback_content
     }
-
-    # response = client.chat.completions.create(
-    #     model="gpt-4",
-    #     messages=[
-    #         {"role": "system", "content": system_prompt},
-    #         {"role": "user", "content": user_feedback}
-    #     ]
-    # )
-
-    # return {
-    #     "meta_feedback": response.choices[0].message.content
-    # }
-

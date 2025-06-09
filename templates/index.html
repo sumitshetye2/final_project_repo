@@ -1,148 +1,200 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>UX Feedback Critique Assistant</title>
-    <link rel="stylesheet" href="/static/style.css">
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <title>UX Feedback Critique Assistant</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
-    <div class="container">
-        <header class="app-header">
-            <h1>UX Feedback Critique Assistant</h1>
-            <div class="theme-switch-wrapper">
-                <span class="theme-descriptor" id="themeDescriptor">Dark Mode</span>
-                <label class="theme-switch" for="checkbox">
-                    <input type="checkbox" id="checkbox" />
-                    <div class="slider round"></div>
-                </label>
+  <div class="container">
+    <header class="app-header">
+      <h1>UX Feedback Critique Assistant</h1>
+      <div class="theme-switch-wrapper">
+        <span class="theme-descriptor" id="themeDescriptor">Dark Mode</span>
+        <label class="theme-switch" for="checkbox">
+          <input type="checkbox" id="checkbox" />
+          <div class="slider round"></div>
+        </label>
+      </div>
+    </header>
+
+    <div class="content-wrapper">
+      <div class="left-panel">
+        <h2>Your Critique</h2>
+        <form id="feedbackForm" class="feedback-form">
+          <div class="form-group">
+            <label for="designPhase">Select This Project's Design Phase:</label>
+            <select id="designPhase" name="designPhase" class="input-field">
+              <option value="early_stage">Early Stage - Ideas & Direction</option>
+              <option value="mid_stage">Mid Stage - Prototyping</option>
+              <option value="late_stage">Late Stage - User Testing & Refinement</option>
+              <option value="post_launch">Post-Launch - Iteration</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="feedbackInput">What are some feedback you have for your peers? Be sure to include things that they did well, things that could be improved, and other thoughts/questions you have!</label>
+            <textarea id="feedbackInput" rows="12" placeholder="Paste student feedback here..." class="input-field textarea-large"></textarea>
+          </div>
+
+          <div class="form-group">
+            <button type="button" id="toggleCustomInstructions" class="toggle-button">Add Custom Instructions</button>
+            <div id="customInstructionsPanel" style="display:none; margin-top:10px;">
+              <label for="customInstructions">Custom Instructions (optional):</label>
+              <textarea id="customInstructions" rows="3" placeholder="e.g. Offer the feedback in spanish, plz" class="input-field"></textarea>
             </div>
-        </header>
+          </div>
 
-        <div class="content-wrapper">
-            <div class="left-panel">
-                <h2>Your Critique</h2>
-                <form id="feedbackForm" class="feedback-form">
-                    <div class="form-group">
-                        <label for="designPhase">Select This Project's Design Phase:</label>
-                        <select id="designPhase" name="designPhase" class="input-field">
-                            <option value="early_stage">Early Stage - Ideas & Direction</option>
-                            <option value="mid_stage">Mid Stage - Prototyping</option>
-                            <option value="late_stage">Late Stage - User Testing & Refinement</option>
-                            <option value="post_launch">Post-Launch - Iteration</option>
-                        </select>
-                    </div>
+          <button type="submit" class="submit-button">Get Suggestions</button>
+        </form>
+      </div>
 
-                    <div class="form-group">
-                        <label for="feedbackInput">What are some feedback you have for your peers? Be sure to include things that they did well, things that could be improved, and other thoughts/questions you have!</label>
-                        <textarea id="feedbackInput" rows="12" placeholder="Paste student feedback here..." class="input-field textarea-large"></textarea>
-                    </div>
-
-                    <!-- Custom Instructions Toggle and Panel -->
-                    <div class="form-group">
-                        <button type="button" id="toggleCustomInstructions" class="toggle-button">Add Custom Instructions</button>
-                        <div id="customInstructionsPanel" style="display:none; margin-top:10px;">
-                            <label for="customInstructions">Custom Instructions (optional):</label>
-                            <textarea id="customInstructions" rows="3" placeholder="Offer the feedback in spanish, plz" class="input-field"></textarea>
-                        </div>
-                    </div>
-
-                    <button type="submit" class="submit-button">Get Suggestions</button>
-                </form>
-            </div>
-
-            <div class="right-panel">
-                <h2>Suggestions</h2>
-                <div id="responseOutput" class="response-output">Anticipating your input...</div>
-            </div>
-        </div>
+      <div class="right-panel">
+        <h2>Suggestions</h2>
+        <div id="responseOutput" class="response-output">Anticipating your input...</div>
+        <div id="rewriteMatches" class="rewrite-matches" style="margin-top: 20px;"></div>
+        <div id="rewriteZone" style="display:none; margin-top: 40px;"></div>
+      </div>
     </div>
+  </div>
 
-    <script>
-        // --- Theme Switch Logic ---
-        const checkbox = document.getElementById('checkbox');
-        const body = document.body;
-        const themeDescriptor = document.getElementById('themeDescriptor'); // Get the new descriptor span
+  <script>
+    const checkbox = document.getElementById('checkbox');
+    const body = document.body;
+    const themeDescriptor = document.getElementById('themeDescriptor');
 
-        // Function to set theme
-        function setTheme(isLight) {
-            if (isLight) {
-                body.classList.add('light-mode');
-                body.classList.remove('dark-mode');
-                localStorage.setItem('theme', 'light');
-                themeDescriptor.textContent = 'Light Mode'; // Update text for light mode
-            } else {
-                body.classList.add('dark-mode');
-                body.classList.remove('light-mode');
-                localStorage.setItem('theme', 'dark');
-                themeDescriptor.textContent = 'Dark Mode'; // Update text for dark mode
-            }
+    function setTheme(isLight) {
+      if (isLight) {
+        body.classList.add('light-mode');
+        body.classList.remove('dark-mode');
+        localStorage.setItem('theme', 'light');
+        themeDescriptor.textContent = 'Light Mode';
+      } else {
+        body.classList.add('dark-mode');
+        body.classList.remove('light-mode');
+        localStorage.setItem('theme', 'dark');
+        themeDescriptor.textContent = 'Dark Mode';
+      }
+    }
+
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light') {
+      checkbox.checked = true;
+      setTheme(true);
+    } else {
+      checkbox.checked = false;
+      setTheme(false);
+    }
+
+    checkbox.addEventListener('change', function() {
+      setTheme(this.checked);
+    });
+
+    const toggleBtn = document.getElementById('toggleCustomInstructions');
+    const customPanel = document.getElementById('customInstructionsPanel');
+    toggleBtn.addEventListener('click', function() {
+      if (customPanel.style.display === 'none') {
+        customPanel.style.display = 'block';
+        toggleBtn.textContent = 'Hide Custom Instructions';
+      } else {
+        customPanel.style.display = 'none';
+        toggleBtn.textContent = 'Add Custom Instructions';
+      }
+    });
+
+    document.getElementById("feedbackForm").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const designPhase = document.getElementById("designPhase").value;
+      const feedback = document.getElementById("feedbackInput").value;
+      const customInstructions = document.getElementById("customInstructions").value;
+      const responseOutput = document.getElementById("responseOutput");
+      const rewriteMatches = document.getElementById("rewriteMatches");
+      const rewriteZone = document.getElementById("rewriteZone");
+
+      responseOutput.classList.add('loading');
+      responseOutput.innerHTML = 'Generating suggestions<span class="dots"><span>.</span><span>.</span><span>.</span></span>';
+      rewriteMatches.innerHTML = '';
+      rewriteZone.style.display = 'none';
+      rewriteZone.innerHTML = '';
+
+      try {
+  
+        const res = await fetch("/meta_critique", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ feedback, instructions: customInstructions })
+        });
+        const result = await res.json();
+
+        // Show markdown in response pane
+        responseOutput.innerHTML = marked.parse(result.meta_feedback || '*No feedback text provided.*');
+
+        // Build rewrite activity
+        if (result.rewrite_suggestions) {
+          const replacements = result.rewrite_suggestions;
+          rewriteZone.style.display = 'block';
+          let badHTML = '<h3>Rewrite Activity</h3><p>Drag replacements onto the bad phrases below:</p><p>';
+          let bank = '<div style="margin-top: 20px;"><strong>Suggestions:</strong><br>';
+
+          replacements.forEach((item, i) => {
+            badHTML += `<span class='droppable bad-phrase' data-id='${i}'>${item.bad_phrase}</span> `;
+            bank += `<span class='suggestion' draggable='true' data-id='${i}'>${item.suggested_rewrite}</span> `;
+          });
+
+          badHTML += '</p>' + bank + '</div>';
+          rewriteZone.innerHTML = badHTML;
+
+          enableDragRewrite(replacements);
         }
 
-        // Apply saved theme on load
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme === 'light') {
-            checkbox.checked = true;
-            setTheme(true); // Call setTheme to correctly set descriptor on load
-        } else {
-            checkbox.checked = false;
-            setTheme(false); // Call setTheme to correctly set descriptor on load
-        }
-        
-        // Event Listener for theme toggle
-        checkbox.addEventListener('change', function() {
-            setTheme(this.checked);
-        })
+      } catch (error) {
+        console.error("Error fetching meta-critique:", error);
+        responseOutput.textContent = "Error: Could not generate suggestions. Please try again.";
+      } finally {
+        responseOutput.classList.remove('loading');
+      }
+    });
 
-        // --- Feedback Form Logic ---
-        // Add toggle logic for custom instructions panel
-        const toggleBtn = document.getElementById('toggleCustomInstructions');
-        const customPanel = document.getElementById('customInstructionsPanel');
-        toggleBtn.addEventListener('click', function() {
-            if (customPanel.style.display === 'none') {
-                customPanel.style.display = 'block';
-                toggleBtn.textContent = 'Hide Custom Instructions';
-            } else {
-                customPanel.style.display = 'none';
-                toggleBtn.textContent = 'Add Custom Instructions';
-            }
+    function enableDragRewrite(replacements) {
+      const suggestions = document.querySelectorAll('.suggestion');
+      const targets = document.querySelectorAll('.droppable');
+
+      suggestions.forEach(s => {
+        s.addEventListener('dragstart', e => {
+          e.dataTransfer.setData('text/plain', s.dataset.id);
+        });
+      });
+
+      targets.forEach(t => {
+        t.addEventListener('dragover', e => {
+          e.preventDefault();
+          t.classList.add('highlight');
         });
 
-        document.getElementById("feedbackForm").addEventListener("submit", async function (e) {
-            e.preventDefault();
-            // Get both design phase and feedback input
-            const designPhase = document.getElementById("designPhase").value;
-            const feedback = document.getElementById("feedbackInput").value;
-            const customInstructions = document.getElementById("customInstructions").value; // NEW
-            const responseOutput = document.getElementById("responseOutput");
-
-            // 1. Show loading indicator immediately
-            responseOutput.classList.add('loading');
-            // Use innerHTML to allow for the span for animation dots
-            responseOutput.innerHTML = 'Generating suggestions<span class="dots"><span>.</span><span>.</span><span>.</span></span>';
-
-            try {
-                // Ensure this URL matches your FastAPI server's address (e.g., http://127.0.0.1:8000)
-                const res = await fetch("http://127.0.0.1:8000/meta_critique", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    // Send both designPhase, feedback, and customInstructions in the request body
-                    body: JSON.stringify({ design_phase: designPhase, feedback: feedback, custom_instructions: customInstructions })
-                });
-
-                const result = await res.json();
-                
-                // 2. Convert Markdown to HTML and display
-                // Use marked.parse() to convert the Markdown string from the backend into HTML
-                responseOutput.innerHTML = marked.parse(result.meta_feedback);
-
-            } catch (error) {
-                console.error("Error fetching meta-critique:", error);
-                responseOutput.textContent = "Error: Could not generate suggestions. Please try again.";
-            } finally {
-                // 3. Remove loading indicator regardless of success or failure
-                responseOutput.classList.remove('loading');
-            }
+        t.addEventListener('dragleave', () => {
+          t.classList.remove('highlight');
         });
-    </script>
+
+        t.addEventListener('drop', e => {
+          e.preventDefault();
+          const id = e.dataTransfer.getData('text/plain');
+          const suggestion = document.querySelector(`.suggestion[data-id='${id}']`);
+          if (id === t.dataset.id) {
+            t.classList.remove('highlight');
+            t.classList.add('fade-out');
+            setTimeout(() => {
+              t.textContent = suggestion.textContent;
+              t.classList.remove('bad-phrase');
+              t.style.backgroundColor = '#4CAF50';
+              suggestion.remove();
+            }, 300);
+          } else {
+            alert("That doesn’t match. Try again.");
+            t.classList.remove('highlight');
+          }
+        });
+      });
+    }
+  </script>
 </body>
 </html>
