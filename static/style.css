@@ -380,4 +380,5 @@ input:checked + .slider:before {
   font-size: 1.1em;
   margin-bottom: 0.75em;
   line-height: 1.4;
+  color: black
 }
