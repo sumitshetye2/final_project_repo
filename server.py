@@ -33,7 +33,7 @@ app.add_middleware(
 )
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="../final_project_repo/templates")
+templates = Jinja2Templates(directory="templates")
 
 system_prompt = """
 You are a helpful assistant designed to **critique student feedback on project presentations**, with the goal of improving how students *give* feedback—not evaluating the project itself.
