@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>UX Feedback Critique Assistant</title>
+  <title>UX Meta Critique Assistant</title>
   <link rel="stylesheet" href="/static/style.css">
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
@@ -41,8 +41,13 @@
             <button type="button" id="toggleCustomInstructions" class="toggle-button">Add Custom Instructions</button>
             <div id="customInstructionsPanel" style="display:none; margin-top:10px;">
               <label for="customInstructions">Custom Instructions (optional):</label>
-              <textarea id="customInstructions" rows="3" placeholder="e.g. Offer the feedback in spanish, plz" class="input-field"></textarea>
+              <textarea id="customInstructions" rows="3" placeholder="e.g. Offer the meta-critique in Huttese, plz" class="input-field"></textarea>
             </div>
+          </div>
+
+          <div class="form-group">
+            <label for="studentName">Your Name (optional):</label>
+            <input type="text" id="studentName" class="input-field" placeholder="John Smith" />
           </div>
 
           <button type="submit" class="submit-button">Get Suggestions</button>
@@ -91,6 +96,7 @@
     });
 
     const toggleBtn = document.getElementById('toggleCustomInstructions');
+    toggleBtn.classList.add("submit-button");
     const customPanel = document.getElementById('customInstructionsPanel');
     toggleBtn.addEventListener('click', function() {
       if (customPanel.style.display === 'none') {
@@ -119,33 +125,81 @@
 
       try {
   
+        const studentName = document.getElementById("studentName").value;
+
         const res = await fetch("/meta_critique", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ feedback, instructions: customInstructions })
+          body: JSON.stringify({
+            feedback,
+            instructions: customInstructions,
+            student_name: studentName
+          })
         });
+
         const result = await res.json();
 
         // Show markdown in response pane
         responseOutput.innerHTML = marked.parse(result.meta_feedback || '*No feedback text provided.*');
 
-        // Build rewrite activity
         if (result.rewrite_suggestions) {
           const replacements = result.rewrite_suggestions;
           rewriteZone.style.display = 'block';
-          let badHTML = '<h3>Rewrite Activity</h3><p>Drag replacements onto the bad phrases below:</p><p>';
-          let bank = '<div style="margin-top: 20px;"><strong>Suggestions:</strong><br>';
+
+          // Build new two-column layout
+          let tableHTML = `
+            <h3>Rewrite Activity</h3>
+            <p>Drag each suggested rewrite onto the matching bad phrase.</p>
+            <table class="rewrite-table">
+              <thead>
+                <tr><th>Suggested Rewrite</th><th></th><th>Bad Phrase</th></tr>
+              </thead>
+              <tbody>
+          `;
 
           replacements.forEach((item, i) => {
-            badHTML += `<span class='droppable bad-phrase' data-id='${i}'>${item.bad_phrase}</span> `;
-            bank += `<span class='suggestion' draggable='true' data-id='${i}'>${item.suggested_rewrite}</span> `;
+            tableHTML += `
+              <tr>
+                <td><span class='suggestion' draggable='true' data-id='${i}'>${item.suggested_rewrite}</span></td>
+                <td style="text-align:center;">→</td>
+                <td><span class='droppable bad-phrase' data-id='${i}'>${item.bad_phrase}</span></td>
+              </tr>
+            `;
           });
 
-          badHTML += '</p>' + bank + '</div>';
-          rewriteZone.innerHTML = badHTML;
+          tableHTML += '</tbody></table>';
+          rewriteZone.innerHTML = tableHTML;
 
-          enableDragRewrite(replacements);
+          // Add download button but disable initially
+          const downloadBtn = document.createElement("button");
+          downloadBtn.textContent = "Download Full Rewrite";
+          downloadBtn.className = "submit-button";
+          downloadBtn.style.marginTop = "20px";
+          downloadBtn.disabled = true;
+          rewriteZone.appendChild(downloadBtn);
+
+          // Enable button if all matches are completed
+          function checkAllMatched() {
+            const remaining = document.querySelectorAll('.suggestion');
+            if (remaining.length === 0) {
+              // document.getElementById("nameField").style.display = "block";
+              downloadBtn.disabled = false;
+            }
+          }
+
+          enableDragRewrite(replacements, checkAllMatched);
+
+          downloadBtn.onclick = () => {
+            const blob = new Blob([result.full_rewrite], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "rewrite_feedback.html";
+            a.click();
+            URL.revokeObjectURL(url);
+          };
         }
+
 
       } catch (error) {
         console.error("Error fetching meta-critique:", error);
@@ -155,7 +209,7 @@
       }
     });
 
-    function enableDragRewrite(replacements) {
+    function enableDragRewrite(replacements, onMatchSuccess) {
       const suggestions = document.querySelectorAll('.suggestion');
       const targets = document.querySelectorAll('.droppable');
 
@@ -187,6 +241,7 @@
               t.classList.remove('bad-phrase');
               t.style.backgroundColor = '#4CAF50';
               suggestion.remove();
+              if (onMatchSuccess) onMatchSuccess();  // ✅ Notify when matched
             }, 300);
           } else {
             alert("That doesn’t match. Try again.");

@@ -1,10 +1,12 @@
 from fastapi import FastAPI, Request, Form
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 import os
 from dotenv import load_dotenv
+import re
+import json
 
 import google.generativeai as genai
 
@@ -31,9 +33,10 @@ app.add_middleware(
 )
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="../final_project_repo/templates")
 
-system_prompt = """You are a helpful assistant designed to **critique student feedback on project presentations**, with the goal of improving how students *give* feedback—not evaluating the project itself.
+system_prompt = """
+You are a helpful assistant designed to **critique student feedback on project presentations**, with the goal of improving how students *give* feedback—not evaluating the project itself.
 
 ## Context of the Conversation
 
@@ -119,11 +122,13 @@ At the end of your Markdown response, return a JSON object in a code block (fenc
     }
   ]
 }
-```"""
+```
+"""
 
 class FeedbackInput(BaseModel):
     feedback: str
     custom_instructions: str = ""  # Optional, default empty
+    student_name: str = "Anonymous"  # NEW: optional field with default
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -135,8 +140,8 @@ model = genai.GenerativeModel('gemini-2.0-flash')
 async def critique_feedback(data: FeedbackInput):
     user_feedback = data.feedback
     custom_instructions = data.custom_instructions or ""
+    student_name = data.student_name or "Anonymous"
 
-    # Add custom instructions to the prompt if provided
     if custom_instructions.strip():
         full_prompt = f"{system_prompt}\n\nCustom Instructions: {custom_instructions}\n\nStudent Feedback:\n{user_feedback}"
     else:
@@ -145,14 +150,68 @@ async def critique_feedback(data: FeedbackInput):
     try:
         response = model.generate_content(full_prompt)
         meta_feedback_content = response.text
+
+        json_match = re.search(r"```json(.*?)```", meta_feedback_content, re.DOTALL)
+        suggestions = json.loads(json_match.group(1).strip()) if json_match else {"rewrite_suggestions": []}
+
+        markdown_only = meta_feedback_content.split("```json")[0].strip()
+
+        full_rewrite_html = f"""
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+        <meta charset="UTF-8">
+        <title>Full Rewrite Suggestions for {student_name}</title>
+        <style>
+            body {{
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f0f0;
+            color: #333333;
+            padding: 2rem;
+            line-height: 1.6;
+            }}
+            h2 {{
+            font-size: 1.8em;
+            margin-bottom: 1em;
+            }}
+            ul {{
+            list-style-type: disc;
+            padding-left: 1.5em;
+            }}
+            li {{
+            margin-bottom: 1rem;
+            font-size: 1.1em;
+            }}
+            .container {{
+            max-width: 800px;
+            margin: auto;
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 2rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            }}
+        </style>
+        </head>
+        <body>
+        <div class="container">
+            <h2>Full Rewrite Suggestions for {student_name}</h2>
+            <ul>
+            {''.join([f"<li>{item['suggested_rewrite']}</li>" for item in suggestions['rewrite_suggestions']])}
+            </ul>
+        </div>
+        </body>
+        </html>
+        """
+
+        return JSONResponse(content={
+            "meta_feedback": markdown_only,
+            "rewrite_suggestions": suggestions.get("rewrite_suggestions", []),
+            "full_rewrite": full_rewrite_html
+        })
+
     except genai.types.BlockedPromptException as e:
-        meta_feedback_content = (
-            "The prompt was blocked by safety filters. Change prompt"
-        )
         print(f"Blocked by Gemini safety filters: {e}")
+        return JSONResponse(content={"meta_feedback": "The prompt was blocked by safety filters.", "rewrite_suggestions": [], "full_rewrite": ""}, status_code=400)
     except Exception as e:
-        meta_feedback_content = f"An error occurred: {str(e)}"
         print(f"Gemini API Error: {e}")
-    return {
-        "meta_feedback": meta_feedback_content
-    }
+        return JSONResponse(content={"meta_feedback": f"An error occurred: {str(e)}", "rewrite_suggestions": [], "full_rewrite": ""}, status_code=500)

@@ -349,3 +349,35 @@ input:checked + .slider:before {
         padding: 0;
     }
 }
+.rewrite-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+.rewrite-table td, .rewrite-table th {
+  padding: 10px;
+  vertical-align: top;
+}
+.suggestion {
+  background: #e0f7fa;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: grab;
+  display: inline-block;
+}
+.bad-phrase {
+  background: #ffe0e0;
+  padding: 8px;
+  border-radius: 6px;
+  min-height: 30px;
+  display: inline-block;
+}
+.download-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.rewrite-list li {
+  font-size: 1.1em;
+  margin-bottom: 0.75em;
+  line-height: 1.4;
+}
